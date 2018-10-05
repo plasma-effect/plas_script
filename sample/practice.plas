@@ -1,0 +1,6 @@
+function Main()
+    let a = ReadLine{int}()
+    let [b, c] = ReadLine{int, int}()
+    let s = ReadLine{string}()
+    WriteLine(a + b + c, s)
+end

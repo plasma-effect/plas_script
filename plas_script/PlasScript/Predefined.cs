@@ -6,21 +6,6 @@ using System.Threading.Tasks;
 
 namespace PlasScript
 {
-    public class BasicValue<T>
-            where T : struct
-    {
-        public BasicValue(T value = default(T))
-        {
-            this.Value = value;
-        }
-
-        void Assign(T val)
-        {
-            this.Value = val;
-        }
-
-        T Value { get; set; }
-    }
     public class BITInt
     {
         long[] ar;
@@ -255,5 +240,9 @@ namespace PlasScript
         {
 
         }
+    }
+    public class BreakType
+    {
+
     }
 }

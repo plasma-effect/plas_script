@@ -3,84 +3,96 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static PlasScript.Parser;
 using static System.Console;
+using PlasScript.Expression;
 
 namespace PlasScript
 {
     class Program
     {
-        static long Eval0(SequenceResult result)
+        static dynamic Plus(dynamic lhs, dynamic rhs)
         {
-            var ret = Eval1(result[0] as SequenceResult);
-            var r1 = result[1] as RepeatResult;
-            foreach (var i in Utility.Range(0, r1.Count))
+            return lhs + rhs;
+        }
+
+        static dynamic Equal(dynamic lhs, dynamic rhs)
+        {
+            return lhs.Equals(rhs);
+        }
+        
+        static dynamic InternalWriteLine(dynamic[] d)
+        {
+            foreach(var v in d)
             {
-                var u = r1[i] as SequenceResult;
-                var u0 = u[0] as TermResult<Operator>;
-                var u1 = u[1] as SequenceResult;
-                var v = Eval1(u1);
-                if (u0.Item.Item == "+")
+                if (v is long[] ar)
                 {
-                    ret += v;
+                    foreach(var u in ar)
+                    {
+                        Write($"{u} ");
+                    }
                 }
                 else
                 {
-                    ret -= v;
+                    Write($"{v} ");
                 }
             }
-            return ret;
+            WriteLine();
+            return new VoidType();
         }
-        static long Eval1(SequenceResult result)
+
+        static dynamic InternalReadLine(dynamic[] d)
         {
-            var ret = Eval2(result[0] as SelectedResult);
-            var r1 = result[1] as RepeatResult;
-            foreach (var i in Utility.Range(0, r1.Count))
-            {
-                var u = r1[i] as SequenceResult;
-                var u0 = u[0] as TermResult<Operator>;
-                var u1 = u[1] as SelectedResult;
-                var v = Eval2(u1);
-                if (u0.Item.Item == "*")
-                {
-                    ret *= v;
-                }
-                else
-                {
-                    ret /= v;
-                }
-            }
-            return ret;
+            return ReadLine().Split(' ').Select(s => long.Parse(s)).ToArray();
         }
-        static long Eval2(SelectedResult result)
+
+        static dynamic[] ConSum(dynamic[] d)
         {
-            if (result.Index == 0)
+            foreach(var i in Utility.Range(1, d[0].Length))
             {
-                var r = result.Result as SequenceResult;
-                return Eval0(r[1] as SequenceResult);
+                d[0][i] += d[0][i - 1];
             }
-            else
-            {
-                var r = result.Result as TermResult<NumberLiteral>;
-                return r.Item.Item;
-            }
+            return d[0];
         }
+
+        static ExpressionCommand MakeWriteLine(IExpr expr)
+        {
+            return new ExpressionCommand(
+                new EmbeddedFunction("WriteLine", InternalWriteLine,
+                new IExpr[] { expr }));
+        }
+
+        static ValueDefineCommand MakeReadLine(int index)
+        {
+            return
+                new ValueDefineCommand(index,
+                new EmbeddedFunction("ReadLine", InternalReadLine,
+                new IExpr[] {}));
+        }
+
 
         static void Main(string[] args)
         {
-            var lexer = new Lexer();
-            var parser = new Parser(
-                NewValue(1) + NewRepeat(NewOperatorSpec("+", "-") + NewValue(1)),
-                NewValue(2) + NewRepeat(NewOperatorSpec("*", "/") + NewValue(2)),
-                    (NewParentSpec("(") + NewValue(0) + NewParentSpec(")"))
-                    / NewAnyTerm<NumberLiteral>());
-            var lex = lexer.Analize(ReadLine());
-            foreach(var v in lex)
+            var command = new List<ICommand>
             {
-                WriteLine(v);
-            }
-            WriteLine(parser.Parse(lex, out var ret) ? ret.ToString() : "パースに失敗しました");
-            WriteLine(Eval0(ret as SequenceResult));
+                MakeReadLine(0),
+                MakeWriteLine(new Value(0)),
+                new ExpressionCommand(new AssignOperator(
+                    new IndexCall(new Value(0),new Expression.NumberLiteral(0)),
+                    new IndexCall(new Value(0),new Expression.NumberLiteral(1)))),
+                MakeWriteLine(new Value(0))
+            };
+
+            var engine = new ScriptEngine(
+                new Dictionary<string, Tuple<List<string>, int, string, List<ICommand>>>
+                {
+                    {"Main",Tuple.Create(new List<string>{},2,"void",command) }
+                });
+            engine.Run("Main");
+            engine.OutPut(Out);
+#if DEBUG
+            WriteLine("終了を待機しています。Enterを押してください");
+            ReadLine();
+#endif
         }
     }
 }
